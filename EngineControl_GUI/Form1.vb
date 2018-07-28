@@ -52,7 +52,7 @@ Public Class Form1
         h = TempBox.CreateGraphics()
         ThrottleVal.Text = "Idle "   ' show the starting position of the throttle
         th_num = ThrottleVal.Text
-        Panel3.Enabled = True       ' Turn off these controls until idle has been reached    SET BACK TO FALSE
+        Panel3.Enabled = False       ' Turn off these controls until idle has been reached    SET BACK TO FALSE
 
         ' Now need to initialize the datafile
         initializeDataFile()
@@ -354,12 +354,11 @@ Public Class Form1
         End If
     End Sub
 
-    Private Delegate Sub tempDelegate(ByVal Temp As Integer)
-    Private Sub TempHandler(ByVal Temp As Integer)  ' This takes temperature in Celcius
+    Private Delegate Sub tempDelegate(ByVal Temp As Decimal)
+    Private Sub TempHandler(ByVal Temp As Decimal)  ' This takes temperature in Celcius
         If (InvokeRequired) Then
             Invoke(New tempDelegate(AddressOf TempHandler), Temp)
         Else
-            Temp = Temp * (1000.0 / 65535.0)
             If Temp <= border1 Then
                 Therm.ForeColor = Color.MidnightBlue
             ElseIf Temp > border1 And Temp <= border2 Then
@@ -372,8 +371,8 @@ Public Class Form1
                 Therm.ForeColor = Color.Red
             End If
 
-            Therm.Value = Temp
-            TempLbl.Text = CStr(Temp) & " °C"
+            Therm.Value = Temp       ' This will be on a scale out of 1000
+            TempLbl.Text = String.Format("{0:n2} °C", Temp)
         End If
 
     End Sub
@@ -475,7 +474,7 @@ Public Class Form1
     End Sub
 
     Private Sub SerialPort1_DataReceived(sender As Object, e As SerialDataReceivedEventArgs) Handles SerialPort1.DataReceived
-        'Threading.Thread.Sleep(15) ' 10 milliseconds = 0.01 seconds
+        System.Threading.Thread.Sleep(30)       ' wait for a small amount of time to allow the full message to come in
         Dim byteArray(SerialPort1.BytesToRead()) As Byte
         SerialPort1.Read(byteArray, 0, SerialPort1.BytesToRead)
         Dim returnStr As String = System.Text.Encoding.UTF8.GetString(byteArray)
@@ -529,13 +528,17 @@ Public Class Form1
             Invoke(New receiveDelegate(AddressOf messageReceive), input)
         Else
             ' First I need to check the length of the message to see if it needs to be resent
-            If Not (input.Length = 22) Then
+            If (input.Length = 1) Then
+                Return                   ' Drop messages of this length
+            End If
+            If Not (input.Length = 29) Then     ' This is 29 instead of 28 because Vb.net is adding a terminator
                 SerialPort1.Write("R")    ' This will mean that the data needs to be resent
                 ' Next I need to do the parity byte error checking
             ElseIf (Not byteCheck(input)) Then ' there was an issue with the message transmission
                 RichTextBox1.AppendText("Parity Error Detected, Shutting Down Engine" & Environment.NewLine)
                 file_handle.WriteLine("Parity Error Detected")
                 connect = False
+                byteCheck(input)
 
             Else ' This means that I can trust the data and need to display/save it
                 aTimer.Dispose()
@@ -557,8 +560,9 @@ Public Class Form1
         Dim parity1 As Byte
         Dim parity2 As Byte
         Dim parity3 As Byte
+        Dim parity4 As Byte
         ' first I need to seperate all of the string into the respective substrings
-        For i As Integer = 0 To 2      ' there are three parity bytes
+        For i As Integer = 0 To 3      ' there are four parity bytes
             For j As Integer = 0 To 1   ' there are two sections to each byte
                 Dim count As Integer = 0
                 For k As Integer = 0 To 2   ' there are three bytes per section
@@ -569,20 +573,22 @@ Public Class Form1
                     End While
                 Next
                 ' Now take the modulo
-                count = count Mod 8
+                count = count Mod 16
                 ' Now fill the values into parity_i
                 If i = 0 Then
                     parity1 = parity1 Or (count << j * 4)
                 ElseIf i = 1 Then
                     parity2 = parity2 Or (count << j * 4)
-                Else
+                ElseIf i = 2 Then
                     parity3 = parity3 Or (count << j * 4)
+                Else
+                    parity4 = parity4 Or (count << j * 4)
                 End If
             Next
 
         Next
         ' Now do all of the comparison
-        If parity1 = byteList(18) And parity2 = byteList(19) And parity3 = byteList(20) Then    ' Still need to add in the third parity byte
+        If parity1 = byteList(24) And parity2 = byteList(25) And parity3 = byteList(26) And parity4 = byteList(27) Then    ' All parity bytes must be correct
             result = True
         End If
 
@@ -605,16 +611,19 @@ Public Class Form1
             Dim RPM As Integer = Convert.ToInt32(BitConverter.ToUInt16(input, 5))
 
             ' Next get the EGT
-            Dim EGT As Integer = Convert.ToInt32(BitConverter.ToUInt16(input, 7))
+            Dim EGT As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 7))
 
             ' Next get the battery voltage
-            Dim batVolts As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 9))
+            Dim batVolts As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 11))
 
             ' Next get the Glow plug state
-            Dim gPlug As Byte = input(13)
+            Dim gPlug As Byte = input(15)
 
             ' Next get the Temperature of the ECU
-            Dim ECU_Temp As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 14))
+            Dim ECU_Temp As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 16))
+
+            ' Next get the Temperature of the ESB
+            Dim ESB_Temp As Decimal = Convert.ToDecimal(BitConverter.ToSingle(input, 20))
 
             ' Now update the data on screen
             TempHandler(EGT)
@@ -622,7 +631,7 @@ Public Class Form1
             MassFlow(mFlow)
             Voltage(batVolts)
             glowPlug(gPlug)
-            BoardTemp(ECU_Temp)
+            BoardTemp(ECU_Temp, ESB_Temp)
 
             ' Now write the information to file
             Dim endTime As Date = Date.Now
@@ -637,39 +646,39 @@ Public Class Form1
 
             ' Now write important messages to the output window
             Select Case state
-                    Case "S"
-                        RichTextBox1.AppendText("Engine shutdown requested and is being carried out" & Environment.NewLine)
+                Case "S"
+                    RichTextBox1.AppendText("Engine shutdown requested and is being carried out" & Environment.NewLine)
 
-                    Case "r"
-                        RichTextBox1.AppendText("Engine Startup in Progress" & Environment.NewLine)
+                Case "r"
+                    RichTextBox1.AppendText("Engine Startup in Progress" & Environment.NewLine)
 
-                    Case "t"
-                        RichTextBox1.AppendText("Throttle Adjustment" & Environment.NewLine)
+                Case "t"
+                    RichTextBox1.AppendText("Throttle Adjustment in progress" & Environment.NewLine)
 
-                    Case "C"
-                        RichTextBox1.AppendText("Engine Entering Cooling Mode" & Environment.NewLine)
+                Case "C"
+                    RichTextBox1.AppendText("Engine Entering Cooling Mode" & Environment.NewLine)
 
-                    Case "g"
-                        RichTextBox1.AppendText("Exhaust Gas Thermocouple error, check connection" & Environment.NewLine)
+                Case "g"
+                    RichTextBox1.AppendText("Exhaust Gas Thermocouple error, Special Shutdown in progress" & Environment.NewLine)
 
-                    Case "N"
-                        RichTextBox1.AppendText("Engine has Reached Desired Throttle" & Environment.NewLine)
+                Case "N"
+                    RichTextBox1.AppendText("Engine has Reached Desired Throttle" & Environment.NewLine)
 
-                    Case "b"
-                        RichTextBox1.AppendText("No Connection with ESB" & Environment.NewLine)
+                Case "b"
+                    RichTextBox1.AppendText("No Connection with ESB" & Environment.NewLine)
 
-                    Case "I"
-                        RichTextBox1.AppendText("Engine has Reached Idle" & Environment.NewLine)
+                Case "I"
+                    RichTextBox1.AppendText("Engine has Reached Idle" & Environment.NewLine)
 
-                    Case "T"
-                        RichTextBox1.AppendText("Temperature Limit Reached, Shutting Down" & Environment.NewLine)
+                Case "T"
+                    RichTextBox1.AppendText("Temperature Limit Reached, Shutting Down" & Environment.NewLine)
 
-                    Case "R"
-                        RichTextBox1.AppendText("RPM Limit Reached, Shutting Down" & Environment.NewLine)
+                Case "R"
+                    RichTextBox1.AppendText("RPM Limit Reached, Shutting Down" & Environment.NewLine)
 
-                    Case "P"
-                        RichTextBox1.AppendText("Fuel not flowing or Flow meter not working, Shutting Down" & Environment.NewLine)
-                End Select
+                Case "P"
+                    RichTextBox1.AppendText("Fuel not flowing or Flow meter not working, Shutting Down" & Environment.NewLine)
+            End Select
             RichTextBox1.SelectionStart = RichTextBox1.TextLength
             RichTextBox1.ScrollToCaret()
         End If
@@ -726,10 +735,10 @@ Public Class Form1
                 BatProgress.ProgressColor = Color.Crimson
             End If
             If batVolts < 10 Then
-                Dim volt_num As String = String.Format(" {0:n1} V", batVolts)  ' Add the space so that the padding is good
+                Dim volt_num As String = String.Format(" {0:n2} V", batVolts)  ' Add the space so that the padding is good
                 BatVoltsLabel.Text = volt_num
             Else
-                Dim volt_num As String = String.Format("{0:n1} V", batVolts)
+                Dim volt_num As String = String.Format("{0:n2} V", batVolts)
                 BatVoltsLabel.Text = volt_num
             End If
             BatVoltsLabel.ForeColor = BatProgress.ProgressColor
@@ -781,15 +790,19 @@ Public Class Form1
         End If
     End Sub
 
-    Private Delegate Sub boardDelegate(ByVal temp As Decimal)
-    Private Sub BoardTemp(temp As Decimal)
+    Private Delegate Sub boardDelegate(ByVal ECU_temp As Decimal, ByVal ESB_temp As Decimal)
+    Private Sub BoardTemp(ECU_temp As Decimal, ESB_temp As Decimal)
         If (InvokeRequired) Then
-            Invoke(New boardDelegate(AddressOf BoardTemp), temp)
+            Invoke(New boardDelegate(AddressOf BoardTemp), ECU_temp)
         Else
-            Dim constant As String = "ECU Temperature:"
-            Dim temp_num As String = String.Format(" {0:n2} C", temp)  ' Add the space so that the padding is good
-            temp_num.PadLeft(10)
-            ECUTemp.Text = constant & temp_num
+            Dim constant1 As String = "ECU Temperature:"
+            Dim constant2 As String = "ESB Temperature:"
+            Dim temp_num_ECU As String = String.Format(" {0:n2} °C", ECU_temp)  ' Add the space so that the padding is good
+            Dim temp_num_ESB As String = String.Format(" {0:n2} °C", ESB_temp)
+            temp_num_ECU.PadLeft(10)
+            temp_num_ESB.PadLeft(10)
+            ECUTemp.Text = constant1 & temp_num_ECU
+            ESBTemp.Text = constant2 & temp_num_ESB
         End If
     End Sub
 

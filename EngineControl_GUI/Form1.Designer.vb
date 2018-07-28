@@ -49,12 +49,14 @@ Partial Class Form1
         Me.RPM_lbl = New System.Windows.Forms.Label()
         Me.SerialPort1 = New System.IO.Ports.SerialPort(Me.components)
         Me.Panel5 = New System.Windows.Forms.Panel()
+        Me.ClearText = New System.Windows.Forms.Button()
         Me.mWindow = New System.Windows.Forms.Label()
         Me.RichTextBox1 = New System.Windows.Forms.RichTextBox()
         Me.Panel8 = New System.Windows.Forms.Panel()
         Me.PictureBox1 = New System.Windows.Forms.PictureBox()
         Me.Label4 = New System.Windows.Forms.Label()
         Me.Panel9 = New System.Windows.Forms.Panel()
+        Me.BatVoltsLabel = New System.Windows.Forms.Label()
         Me.Label11 = New System.Windows.Forms.Label()
         Me.Label10 = New System.Windows.Forms.Label()
         Me.Label9 = New System.Windows.Forms.Label()
@@ -63,8 +65,7 @@ Partial Class Form1
         Me.Label8 = New System.Windows.Forms.Label()
         Me.Panel10 = New System.Windows.Forms.Panel()
         Me.ECUTemp = New System.Windows.Forms.Label()
-        Me.BatVoltsLabel = New System.Windows.Forms.Label()
-        Me.ClearText = New System.Windows.Forms.Button()
+        Me.ESBTemp = New System.Windows.Forms.Label()
         Me.Panel1.SuspendLayout()
         Me.Panel2.SuspendLayout()
         Me.Panel3.SuspendLayout()
@@ -353,6 +354,17 @@ Partial Class Form1
         Me.Panel5.Size = New System.Drawing.Size(556, 214)
         Me.Panel5.TabIndex = 5
         '
+        'ClearText
+        '
+        Me.ClearText.BackColor = System.Drawing.Color.FromArgb(CType(CType(122, Byte), Integer), CType(CType(122, Byte), Integer), CType(CType(122, Byte), Integer))
+        Me.ClearText.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.125!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.ClearText.Location = New System.Drawing.Point(471, 12)
+        Me.ClearText.Name = "ClearText"
+        Me.ClearText.Size = New System.Drawing.Size(75, 23)
+        Me.ClearText.TabIndex = 2
+        Me.ClearText.Text = "Clear"
+        Me.ClearText.UseVisualStyleBackColor = False
+        '
         'mWindow
         '
         Me.mWindow.AutoSize = True
@@ -420,6 +432,18 @@ Partial Class Form1
         Me.Panel9.Name = "Panel9"
         Me.Panel9.Size = New System.Drawing.Size(200, 188)
         Me.Panel9.TabIndex = 7
+        '
+        'BatVoltsLabel
+        '
+        Me.BatVoltsLabel.AutoSize = True
+        Me.BatVoltsLabel.BackColor = System.Drawing.Color.FromArgb(CType(CType(224, Byte), Integer), CType(CType(224, Byte), Integer), CType(CType(224, Byte), Integer))
+        Me.BatVoltsLabel.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.125!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.BatVoltsLabel.ForeColor = System.Drawing.Color.Coral
+        Me.BatVoltsLabel.Location = New System.Drawing.Point(75, 98)
+        Me.BatVoltsLabel.Name = "BatVoltsLabel"
+        Me.BatVoltsLabel.Size = New System.Drawing.Size(92, 31)
+        Me.BatVoltsLabel.TabIndex = 11
+        Me.BatVoltsLabel.Text = "10.0 V"
         '
         'Label11
         '
@@ -506,6 +530,7 @@ Partial Class Form1
         '
         Me.Panel10.BackColor = System.Drawing.Color.FromArgb(CType(CType(70, Byte), Integer), CType(CType(70, Byte), Integer), CType(CType(70, Byte), Integer))
         Me.Panel10.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D
+        Me.Panel10.Controls.Add(Me.ESBTemp)
         Me.Panel10.Controls.Add(Me.ECUTemp)
         Me.Panel10.Location = New System.Drawing.Point(1236, 59)
         Me.Panel10.Name = "Panel10"
@@ -517,34 +542,22 @@ Partial Class Form1
         Me.ECUTemp.AutoSize = True
         Me.ECUTemp.Font = New System.Drawing.Font("Microsoft Sans Serif", 13.875!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.ECUTemp.ForeColor = System.Drawing.Color.White
-        Me.ECUTemp.Location = New System.Drawing.Point(20, 45)
+        Me.ECUTemp.Location = New System.Drawing.Point(20, 20)
         Me.ECUTemp.Name = "ECUTemp"
         Me.ECUTemp.Size = New System.Drawing.Size(438, 42)
         Me.ECUTemp.TabIndex = 0
         Me.ECUTemp.Text = "ECU Temperature:      0C"
         '
-        'BatVoltsLabel
+        'ESBTemp
         '
-        Me.BatVoltsLabel.AutoSize = True
-        Me.BatVoltsLabel.BackColor = System.Drawing.Color.FromArgb(CType(CType(224, Byte), Integer), CType(CType(224, Byte), Integer), CType(CType(224, Byte), Integer))
-        Me.BatVoltsLabel.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.125!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.BatVoltsLabel.ForeColor = System.Drawing.Color.Coral
-        Me.BatVoltsLabel.Location = New System.Drawing.Point(78, 98)
-        Me.BatVoltsLabel.Name = "BatVoltsLabel"
-        Me.BatVoltsLabel.Size = New System.Drawing.Size(92, 31)
-        Me.BatVoltsLabel.TabIndex = 11
-        Me.BatVoltsLabel.Text = "10.0 V"
-        '
-        'ClearText
-        '
-        Me.ClearText.BackColor = System.Drawing.Color.FromArgb(CType(CType(122, Byte), Integer), CType(CType(122, Byte), Integer), CType(CType(122, Byte), Integer))
-        Me.ClearText.Font = New System.Drawing.Font("Microsoft Sans Serif", 10.125!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.ClearText.Location = New System.Drawing.Point(471, 12)
-        Me.ClearText.Name = "ClearText"
-        Me.ClearText.Size = New System.Drawing.Size(75, 23)
-        Me.ClearText.TabIndex = 2
-        Me.ClearText.Text = "Clear"
-        Me.ClearText.UseVisualStyleBackColor = False
+        Me.ESBTemp.AutoSize = True
+        Me.ESBTemp.Font = New System.Drawing.Font("Microsoft Sans Serif", 13.875!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.ESBTemp.ForeColor = System.Drawing.Color.White
+        Me.ESBTemp.Location = New System.Drawing.Point(22, 67)
+        Me.ESBTemp.Name = "ESBTemp"
+        Me.ESBTemp.Size = New System.Drawing.Size(434, 42)
+        Me.ESBTemp.TabIndex = 1
+        Me.ESBTemp.Text = "ESB Temperature:      0C"
         '
         'Form1
         '
@@ -639,4 +652,5 @@ Partial Class Form1
     Friend WithEvents ECUTemp As Label
     Friend WithEvents BatVoltsLabel As Label
     Friend WithEvents ClearText As Button
+    Friend WithEvents ESBTemp As Label
 End Class
